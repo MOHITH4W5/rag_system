@@ -1,0 +1,54 @@
+services:
+  sb_postgres:
+    image: postgres:16-alpine
+    container_name: sb_postgres
+    environment:
+      POSTGRES_DB: rag_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - sb_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rag_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 8
+
+  sb_backend:
+    build:
+      context: .
+      dockerfile: second-brain/backend/Dockerfile
+    container_name: sb_backend
+    depends_on:
+      sb_postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: sb_postgres
+      DB_PORT: "5432"
+      DB_NAME: rag_db
+      DB_USER: postgres
+      DB_PASSWORD: your_password
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      RAG_ENGINE: langchain
+      FRONTEND_ORIGINS: http://localhost:3001,http://127.0.0.1:3001
+    volumes:
+      - ./data:/workspace/data
+    ports:
+      - "8001:8001"
+
+  sb_frontend:
+    build:
+      context: .
+      dockerfile: second-brain/frontend/Dockerfile
+    container_name: sb_frontend
+    depends_on:
+      - sb_backend
+    environment:
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:8001
+    ports:
+      - "3001:3001"
+
+volumes:
+  sb_pg_data:

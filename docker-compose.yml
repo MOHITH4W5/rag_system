@@ -1,0 +1,58 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: rag_db
+    environment:
+      POSTGRES_DB: rag_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d rag_db"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    container_name: rag_api
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: rag_db
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      FRONTEND_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      RAG_ENGINE: langchain
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+      args:
+        REACT_APP_API_BASE: http://localhost:8000
+    container_name: rag_ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
