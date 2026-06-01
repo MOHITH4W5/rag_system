@@ -2,7 +2,7 @@
 
 import { CircleDot, Cpu, MoonStar, Sparkles, Sun } from "lucide-react";
 
-import type { EngineMode, ThemeMode } from "@/lib/types";
+import type { AuthUser, EngineMode, ThemeMode } from "@/lib/types";
 
 type Props = {
   engine: EngineMode;
@@ -13,6 +13,8 @@ type Props = {
   onToggleTheme: () => void;
   useWeb: boolean;
   onToggleWeb: () => void;
+  currentUser: AuthUser;
+  onLogout: () => void;
 };
 
 export function AppHeader({
@@ -24,7 +26,11 @@ export function AppHeader({
   onToggleTheme,
   useWeb,
   onToggleWeb,
+  currentUser,
+  onLogout,
 }: Props) {
+  const isAdmin = currentUser.role === "admin";
+
   return (
     <header className="sb-panel sb-header">
       <div className="flex flex-col gap-2">
@@ -38,9 +44,10 @@ export function AppHeader({
         <button
           type="button"
           onClick={() => setEngineMode("langchain")}
-          disabled={engineLoading}
+          disabled={engineLoading || !isAdmin}
           className={`sb-pill ${engine === "langchain" ? "sb-pill-active" : ""}`}
           aria-label="Switch to LangChain engine"
+          title={isAdmin ? "Set runtime engine" : "Only admin can switch engine"}
         >
           <Cpu size={14} />
           LangChain
@@ -48,9 +55,10 @@ export function AppHeader({
         <button
           type="button"
           onClick={() => setEngineMode("classic")}
-          disabled={engineLoading}
+          disabled={engineLoading || !isAdmin}
           className={`sb-pill ${engine === "classic" ? "sb-pill-active" : ""}`}
           aria-label="Switch to Classic engine"
+          title={isAdmin ? "Set runtime engine" : "Only admin can switch engine"}
         >
           <Sparkles size={14} />
           Classic
@@ -67,9 +75,13 @@ export function AppHeader({
         <button type="button" onClick={onToggleTheme} className="sb-icon-btn" aria-label="Toggle theme">
           {theme === "dark" ? <Sun size={16} /> : <MoonStar size={16} />}
         </button>
+        <button type="button" onClick={onLogout} className="sb-pill" aria-label="Logout">
+          Logout
+        </button>
       </div>
 
       <div className="col-span-full flex flex-wrap gap-2 pt-1 text-xs">
+        <span className="sb-badge">User: {currentUser.username} ({currentUser.role})</span>
         <span className={`sb-badge ${llmConnected ? "sb-badge-ok" : "sb-badge-warn"}`}>
           Ollama: {llmConnected ? "Connected" : "Not Connected"}
         </span>

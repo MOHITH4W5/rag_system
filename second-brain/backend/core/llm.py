@@ -57,11 +57,10 @@ def web_search(query: str, max_results: int = 5):
     }
 
 
-def build_quiz(topic: str, num_questions: int):
-    from app.retrieval import format_context, retrieve_relevant_chunks
+def build_quiz(topic: str, num_questions: int, current_user: dict):
+    from core.retriever import retrieve_context_for_user
 
-    chunks = retrieve_relevant_chunks(topic, top_k=8)
-    context = format_context(chunks) if chunks else "No local context."
+    context = retrieve_context_for_user(topic, current_user=current_user, top_k=8)
     prompt = f"""Create {num_questions} high-quality quiz questions from the context below.
 Return STRICT JSON with this shape:
 {{
@@ -87,11 +86,10 @@ Context:
     return {"questions": [], "raw": raw}
 
 
-def build_flashcards(topic: str, count: int):
-    from app.retrieval import format_context, retrieve_relevant_chunks
+def build_flashcards(topic: str, count: int, current_user: dict):
+    from core.retriever import retrieve_context_for_user
 
-    chunks = retrieve_relevant_chunks(topic, top_k=8)
-    context = format_context(chunks) if chunks else "No local context."
+    context = retrieve_context_for_user(topic, current_user=current_user, top_k=8)
     prompt = f"""Create {count} flashcards from the context.
 Return STRICT JSON:
 {{
@@ -111,11 +109,10 @@ Context:
     return {"flashcards": [], "raw": raw}
 
 
-def build_mindmap(topic: str, max_nodes: int):
-    from app.retrieval import format_context, retrieve_relevant_chunks
+def build_mindmap(topic: str, max_nodes: int, current_user: dict):
+    from core.retriever import retrieve_context_for_user
 
-    chunks = retrieve_relevant_chunks(topic, top_k=10)
-    context = format_context(chunks) if chunks else "No local context."
+    context = retrieve_context_for_user(topic, current_user=current_user, top_k=10)
     prompt = f"""Extract a compact concept graph for study.
 Return STRICT JSON:
 {{

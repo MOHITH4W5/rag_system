@@ -11,6 +11,12 @@ if str(ROOT_DIR) not in sys.path:
     sys.path.append(str(ROOT_DIR))
 
 from app.database import init_db  # noqa: E402
+from core.bootstrap import (  # noqa: E402
+    backfill_existing_documents_to_admin_global,
+    ensure_multitenant_schema,
+    seed_demo_users,
+)
+from routers.auth import router as auth_router  # noqa: E402
 from routers.documents import router as documents_router  # noqa: E402
 from routers.engine import router as engine_router  # noqa: E402
 from routers.ingest import router as ingest_router  # noqa: E402
@@ -32,6 +38,9 @@ def _parse_origins() -> list[str]:
 async def lifespan(_: FastAPI):
     try:
         init_db()
+        ensure_multitenant_schema()
+        seed_demo_users()
+        backfill_existing_documents_to_admin_global()
         print("[Second-Brain API] Database schema initialized")
     except Exception as exc:
         print(f"[Second-Brain API] Warning: schema init failed: {exc}")
@@ -65,6 +74,7 @@ def root():
 
 
 app.include_router(engine_router)
+app.include_router(auth_router)
 app.include_router(ingest_router)
 app.include_router(query_router)
 app.include_router(web_search_router)

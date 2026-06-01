@@ -4,6 +4,19 @@ from docx import Document
 from app.database import get_db_connection
 
 
+def _column_exists(cursor, table: str, column: str) -> bool:
+    cursor.execute(
+        """
+        SELECT 1
+        FROM information_schema.columns
+        WHERE table_name = %s AND column_name = %s
+        LIMIT 1
+        """,
+        (table, column),
+    )
+    return cursor.fetchone() is not None
+
+
 def extract_text_from_pdf(file_path: str) -> str:
     """Extract text from a PDF file."""
     with open(file_path, "rb") as file:
@@ -47,7 +60,12 @@ def chunk_text(text: str, chunk_size: int = 500, overlap: int = 50) -> list[str]
     return chunks
 
 
-def ingest_document(file_path: str, filename: str) -> int:
+def ingest_document(
+    file_path: str,
+    filename: str,
+    owner_user_id: int | None = None,
+    visibility_scope: str = "private",
+) -> int:
     """
     Ingest a document: extract text, chunk it, save to database.
     Returns the document_id.
@@ -70,14 +88,27 @@ def ingest_document(file_path: str, filename: str) -> int:
 
     with get_db_connection() as conn:
         with conn.cursor() as cursor:
-            cursor.execute(
-                """
-                INSERT INTO documents (filename, file_type, file_size)
-                VALUES (%s, %s, %s)
-                RETURNING id
-                """,
-                (filename, file_type, len(text)),
-            )
+            has_owner = _column_exists(cursor, "documents", "owner_user_id")
+            has_scope = _column_exists(cursor, "documents", "visibility_scope")
+
+            if has_owner and has_scope:
+                cursor.execute(
+                    """
+                    INSERT INTO documents (filename, file_type, file_size, owner_user_id, visibility_scope)
+                    VALUES (%s, %s, %s, %s, %s)
+                    RETURNING id
+                    """,
+                    (filename, file_type, len(text), owner_user_id, visibility_scope),
+                )
+            else:
+                cursor.execute(
+                    """
+                    INSERT INTO documents (filename, file_type, file_size)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                    """,
+                    (filename, file_type, len(text)),
+                )
             document_id = cursor.fetchone()[0]
 
             for idx, chunk in enumerate(chunks):

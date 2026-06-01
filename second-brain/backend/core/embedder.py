@@ -3,7 +3,7 @@ from pathlib import Path
 import os
 
 
-def ingest_file(raw_bytes: bytes, filename: str):
+def ingest_file(raw_bytes: bytes, filename: str, owner_user_id: int, visibility_scope: str):
     from app.embeddings_manager import embed_document
     from app.ingestion import ingest_document
 
@@ -14,7 +14,12 @@ def ingest_file(raw_bytes: bytes, filename: str):
         tmp_path = tmp.name
 
     try:
-        doc_id = ingest_document(tmp_path, filename)
+        doc_id = ingest_document(
+            tmp_path,
+            filename,
+            owner_user_id=owner_user_id,
+            visibility_scope=visibility_scope,
+        )
         chunks = embed_document(doc_id)
         return {"document_id": doc_id, "chunks_processed": chunks}
     finally:

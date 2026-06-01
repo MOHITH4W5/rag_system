@@ -7,11 +7,12 @@ import type { DocumentItem } from "@/lib/types";
 type Props = {
   documents: DocumentItem[];
   uploadBusy: boolean;
+  currentUserRole: "admin" | "user";
   onUploadClick: () => void;
   onDelete: (docId: number) => void;
 };
 
-export function SourcesPanel({ documents, uploadBusy, onUploadClick, onDelete }: Props) {
+export function SourcesPanel({ documents, uploadBusy, currentUserRole, onUploadClick, onDelete }: Props) {
   return (
     <aside className="sb-panel min-h-[400px]">
       <div className="flex items-center justify-between">
@@ -33,25 +34,32 @@ export function SourcesPanel({ documents, uploadBusy, onUploadClick, onDelete }:
             </p>
           </div>
         ) : (
-          documents.map((doc) => (
-            <article key={doc.id} className="sb-list-item">
-              <div className="flex min-w-0 items-start gap-2">
-                <FileText size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-[var(--text-primary)]">{doc.filename}</p>
-                  <p className="text-xs text-[var(--text-secondary)]">{doc.chunk_count} chunks</p>
+          documents.map((doc) => {
+            const canDelete = currentUserRole === "admin" || !doc.is_global;
+            return (
+              <article key={doc.id} className="sb-list-item">
+                <div className="flex min-w-0 items-start gap-2">
+                  <FileText size={14} className="mt-0.5 shrink-0 text-[var(--accent)]" />
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-[var(--text-primary)]">{doc.filename}</p>
+                    <p className="text-xs text-[var(--text-secondary)]">
+                      {doc.chunk_count} chunks - {doc.is_global ? "Global (Admin)" : "Private (You)"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <button
-                type="button"
-                className="sb-icon-btn danger"
-                aria-label={`Delete ${doc.filename}`}
-                onClick={() => onDelete(doc.id)}
-              >
-                <Trash2 size={14} />
-              </button>
-            </article>
-          ))
+                <button
+                  type="button"
+                  className="sb-icon-btn danger"
+                  aria-label={`Delete ${doc.filename}`}
+                  title={canDelete ? `Delete ${doc.filename}` : "Only admin can delete global documents"}
+                  disabled={!canDelete}
+                  onClick={() => onDelete(doc.id)}
+                >
+                  <Trash2 size={14} />
+                </button>
+              </article>
+            );
+          })
         )}
       </div>
     </aside>

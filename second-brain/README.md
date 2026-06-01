@@ -12,6 +12,16 @@ This is a **NotebookLM-style** app with additional features:
 - API Health: `http://localhost:8001/health`
 - Engine State: `http://localhost:8001/engine`
 
+## Demo Login Accounts
+- `admin / admin123`
+- `user1 / user123`
+- `user2 / user123`
+
+You can override defaults with env vars:
+- `SEED_ADMIN_PASSWORD`
+- `SEED_USER1_PASSWORD`
+- `SEED_USER2_PASSWORD`
+
 ## Run Locally (without Docker)
 From `C:\rag_system`:
 
@@ -42,11 +52,22 @@ docker compose -f docker-compose.second-brain.yml up --build
 ```
 
 This starts:
+- `sb_ollama` (Ollama runtime, port `11434`)
 - `sb_postgres` (PostgreSQL)
 - `sb_backend` (FastAPI, port `8001`)
 - `sb_frontend` (Next.js, port `3001`)
 
+After first startup, pull model once:
+
+```powershell
+docker compose -f docker-compose.second-brain.yml exec sb_ollama ollama pull llama3
+```
+
+Then ask questions from UI normally.
+
 ## Core Endpoints
+- `POST /auth/login` - login and receive bearer token
+- `GET /auth/me` - current logged-in user
 - `POST /ingest` - upload and index a source
 - `POST /query` - RAG answer (`use_web=true` for hybrid path)
 - `POST /web-search` - live web context (Tavily if `TAVILY_API_KEY` is set)
@@ -54,6 +75,8 @@ This starts:
 - `POST /flashcards` - generate flashcards
 - `POST /mindmap` - generate graph JSON for concept mapping
 - `GET /engine`, `POST /engine` - runtime engine control
+
+All data endpoints are authenticated. `POST /engine` is admin-only.
 
 ## DBMS Viva Flow (2-3 min)
 1. Open UI `http://localhost:3001`

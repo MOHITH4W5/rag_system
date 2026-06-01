@@ -1,4 +1,12 @@
 services:
+  sb_ollama:
+    image: ollama/ollama:latest
+    container_name: sb_ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - sb_ollama_data:/root/.ollama
+
   sb_postgres:
     image: postgres:16-alpine
     container_name: sb_postgres
@@ -24,15 +32,21 @@ services:
     depends_on:
       sb_postgres:
         condition: service_healthy
+      sb_ollama:
+        condition: service_started
     environment:
       DB_HOST: sb_postgres
       DB_PORT: "5432"
       DB_NAME: rag_db
       DB_USER: postgres
       DB_PASSWORD: your_password
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_BASE_URL: http://sb_ollama:11434
       RAG_ENGINE: langchain
       FRONTEND_ORIGINS: http://localhost:3001,http://127.0.0.1:3001
+      JWT_SECRET: change_this_for_production
+      SEED_ADMIN_PASSWORD: admin123
+      SEED_USER1_PASSWORD: user123
+      SEED_USER2_PASSWORD: user123
     volumes:
       - ./data:/workspace/data
     ports:
@@ -52,3 +66,4 @@ services:
 
 volumes:
   sb_pg_data:
+  sb_ollama_data:

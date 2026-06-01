@@ -79,7 +79,7 @@ def embed_document(document_id: int) -> int:
     return len(chunks)
 
 
-def get_chunks_by_ids(chunk_ids: list[int]) -> list[dict]:
+def get_chunks_by_ids(chunk_ids: list[int], allowed_document_ids: set[int] | None = None) -> list[dict]:
     """Retrieve full chunk rows by chunk IDs."""
     if not chunk_ids:
         return []
@@ -87,21 +87,40 @@ def get_chunks_by_ids(chunk_ids: list[int]) -> list[dict]:
     with get_db_connection() as conn:
         with conn.cursor() as cursor:
             placeholders = ",".join(["%s"] * len(chunk_ids))
-            cursor.execute(
-                f"""
-                SELECT
-                    dc.id,
-                    dc.chunk_text,
-                    dc.chunk_index,
-                    dc.document_id,
-                    d.filename,
-                    d.title
-                FROM document_chunks dc
-                JOIN documents d ON d.id = dc.document_id
-                WHERE dc.id IN ({placeholders})
-                """,
-                chunk_ids,
-            )
+            if allowed_document_ids:
+                doc_placeholders = ",".join(["%s"] * len(allowed_document_ids))
+                cursor.execute(
+                    f"""
+                    SELECT
+                        dc.id,
+                        dc.chunk_text,
+                        dc.chunk_index,
+                        dc.document_id,
+                        d.filename,
+                        d.title
+                    FROM document_chunks dc
+                    JOIN documents d ON d.id = dc.document_id
+                    WHERE dc.id IN ({placeholders})
+                      AND dc.document_id IN ({doc_placeholders})
+                    """,
+                    chunk_ids + list(allowed_document_ids),
+                )
+            else:
+                cursor.execute(
+                    f"""
+                    SELECT
+                        dc.id,
+                        dc.chunk_text,
+                        dc.chunk_index,
+                        dc.document_id,
+                        d.filename,
+                        d.title
+                    FROM document_chunks dc
+                    JOIN documents d ON d.id = dc.document_id
+                    WHERE dc.id IN ({placeholders})
+                    """,
+                    chunk_ids,
+                )
             rows = cursor.fetchall()
 
     by_id = {
